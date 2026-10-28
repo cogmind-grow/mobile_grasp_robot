@@ -1,0 +1,368 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="growing_bot_gazebo">
+
+    <!-- Materials - base -->
+    <gazebo reference="base_link">
+        <material>Gazebo/Green</material>
+    </gazebo>
+    <gazebo reference="left_wheel_link">
+        <material>Gazebo/Red</material>
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>0.1</maxVel>
+    </gazebo>
+    <gazebo reference="right_wheel_link">
+        <material>Gazebo/Red</material>
+        <mu1>1.0</mu1>
+        <mu2>1.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>0.1</maxVel>
+    </gazebo>
+    <!-- Fixed front caster - near-zero friction avoids stick-slip when driving forward -->
+    <gazebo reference="caster_link">
+        <material>Gazebo/Red</material>
+        <mu1>0.0</mu1>
+        <mu2>0.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>0.1</maxVel>
+    </gazebo>
+    <xacro:if value="$(arg two_d_lidar_enabled)">
+        <gazebo reference="two_d_lidar">
+            <material>Gazebo/Grey</material>
+        </gazebo>
+    </xacro:if>
+    <xacro:if value="$(arg camera_enabled)">
+        <gazebo reference="kinect_camera">
+            <material>Gazebo/Red</material>
+        </gazebo>
+    </xacro:if>
+    <xacro:if value="$(arg stereo_camera_enabled)">
+        <gazebo reference="stereo_camera">
+            <material>Gazebo/Red</material>
+        </gazebo>
+    </xacro:if>
+
+    <xacro:if value="$(arg arm_enabled)">
+        <!-- Materials - arm -->
+        <gazebo reference="arm_base_link">
+            <material>Gazebo/Grey</material>
+        </gazebo>
+        <gazebo reference="shoulder_link">
+            <material>Gazebo/Blue</material>
+        </gazebo>
+        <gazebo reference="arm_link">
+            <material>Gazebo/Grey</material>
+        </gazebo>
+        <gazebo reference="elbow_link">
+            <material>Gazebo/Blue</material>
+        </gazebo>
+        <gazebo reference="forearm_link">
+            <material>Gazebo/Grey</material>
+        </gazebo>
+        <gazebo reference="wrist_link">
+            <material>Gazebo/Blue</material>
+        </gazebo>
+        <gazebo reference="hand_link">
+            <material>Gazebo/Grey</material>
+        </gazebo>
+
+        <!-- Materials - gripper -->
+        <gazebo reference="gripper_base_link">
+            <material>Gazebo/Green</material>
+        </gazebo>
+        <gazebo reference="gripper_left_finger_link">
+            <material>Gazebo/Yellow</material>
+        </gazebo>
+        <gazebo reference="gripper_right_finger_link">
+            <material>Gazebo/Yellow</material>
+        </gazebo>
+    </xacro:if>
+
+    <!-- Gazebo Classic 11 / ROS 2 Humble -->
+    <gazebo>
+        <static>false</static>
+    </gazebo>
+
+    <xacro:unless value="$(arg ros_control_enabled)">
+        <!-- Differential drive (Gazebo plugin; skipped when ros2_control owns the wheels) -->
+        <gazebo>
+            <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
+                <ros>
+                    <namespace>$(arg robot_namespace)</namespace>
+                    <remapping>cmd_vel:=cmd_vel</remapping>
+                    <remapping>odom:=$(arg wheel_odom_topic)</remapping>
+                </ros>
+                <update_rate>50.0</update_rate>
+                <left_joint>base_left_joint</left_joint>
+                <right_joint>base_right_joint</right_joint>
+                <wheel_separation>${base_width + wheel_length}</wheel_separation>
+                <wheel_diameter>${2 * wheel_radius}</wheel_diameter>
+                <max_wheel_torque>20.0</max_wheel_torque>
+                <max_wheel_acceleration>5.0</max_wheel_acceleration>
+                <command_topic>cmd_vel</command_topic>
+                <odometry_topic>$(arg wheel_odom_topic)</odometry_topic>
+                <odometry_frame>odom</odometry_frame>
+                <robot_base_frame>base_footprint</robot_base_frame>
+                <publish_odom>true</publish_odom>
+                <publish_odom_tf>$(arg publish_wheel_odom_tf)</publish_odom_tf>
+                <publish_wheel_tf>true</publish_wheel_tf>
+                <legacy_mode>false</legacy_mode>
+                <xacro:if value="${odometry_source == 'world'}">
+                    <odometry_source>1</odometry_source>
+                </xacro:if>
+                <xacro:if value="${odometry_source == 'encoder' or odometry_source == 'encoders'}">
+                    <odometry_source>0</odometry_source>
+                </xacro:if>
+            </plugin>
+        </gazebo>
+
+        <!-- Wheel joint states -->
+        <gazebo>
+            <plugin name="wheel_joint_state_publisher"
+                    filename="libgazebo_ros_joint_state_publisher.so">
+                <ros>
+                    <namespace>$(arg robot_namespace)</namespace>
+                    <remapping>joint_states:=joint_states</remapping>
+                </ros>
+                <update_rate>50</update_rate>
+                <joint_name>base_left_joint</joint_name>
+                <joint_name>base_right_joint</joint_name>
+            </plugin>
+        </gazebo>
+    </xacro:unless>    
+
+    <!-- Ground-truth odometry -->
+    <xacro:if value="${odometry_source == 'world'}">
+        <gazebo>
+            <plugin name="ground_truth_odometry" filename="libgazebo_ros_p3d.so">
+                <ros>
+                    <namespace>$(arg robot_namespace)</namespace>
+                    <remapping>odom:=p3d_ground_truth</remapping>
+                </ros>
+                <always_on>true</always_on>
+                <update_rate>30.0</update_rate>
+                <body_name>base_footprint</body_name>
+                <frame_name>$(arg ground_truth_frame)</frame_name>
+                <gaussian_noise>0.0</gaussian_noise>
+            </plugin>
+        </gazebo>
+    </xacro:if>
+
+    <!-- 2D lidar -->
+    <xacro:if value="$(arg two_d_lidar_enabled)">
+        <gazebo reference="two_d_lidar">
+            <sensor name="two_d_lidar" type="ray">
+                <always_on>true</always_on>
+                <visualize>false</visualize>
+                <update_rate>${two_d_lidar_update_rate}</update_rate>
+                <ray>
+                    <scan>
+                        <horizontal>
+                            <samples>${two_d_lidar_sample_size}</samples>
+                            <resolution>1</resolution>
+                            <min_angle>${radians(two_d_lidar_min_angle)}</min_angle>
+                            <max_angle>${radians(two_d_lidar_max_angle)}</max_angle>
+                        </horizontal>
+                    </scan>
+                    <range>
+                        <min>${two_d_lidar_min_range}</min>
+                        <max>${two_d_lidar_max_range}</max>
+                        <resolution>0.01</resolution>
+                    </range>
+                    <noise>
+                        <type>gaussian</type>
+                        <mean>0.0</mean>
+                        <stddev>0.001</stddev>
+                    </noise>
+                </ray>
+                <plugin name="two_d_lidar_plugin"
+                        filename="libgazebo_ros_ray_sensor.so">
+                    <ros>
+                        <namespace>$(arg robot_namespace)</namespace>
+                        <remapping>~/out:=scan</remapping>
+                    </ros>
+                    <output_type>sensor_msgs/LaserScan</output_type>
+                    <frame_name>two_d_lidar</frame_name>
+                </plugin>
+            </sensor>
+        </gazebo>
+    </xacro:if>
+
+    <!-- Depth camera -->
+    <xacro:if value="$(arg camera_enabled)">
+        <gazebo reference="kinect_camera">
+            <sensor name="kinect_camera" type="depth">
+                <always_on>true</always_on>
+                <visualize>true</visualize>
+                <update_rate>30.0</update_rate>
+                <camera>
+                    <horizontal_fov>${radians(camera_horizontal_fov)}</horizontal_fov>
+                    <image>
+                        <width>640</width>
+                        <height>480</height>
+                        <format>R8G8B8</format>
+                    </image>
+                    <clip>
+                        <near>0.05</near>
+                        <far>8.0</far>
+                    </clip>
+                </camera>
+                <plugin name="kinect_camera_plugin"
+                        filename="libgazebo_ros_camera.so">
+                    <ros>
+                        <namespace>$(arg robot_namespace)</namespace>
+                    </ros>
+                    <camera_name>kinect_camera</camera_name>
+                    <frame_name>kinect_camera_optical</frame_name>
+                    <min_depth>0.1</min_depth>
+                    <max_depth>8.0</max_depth>
+                </plugin>
+            </sensor>
+        </gazebo>
+    </xacro:if>
+
+    <!-- IMU -->
+    <gazebo reference="imu_frame">
+        <sensor name="imu_sensor" type="imu">
+            <always_on>true</always_on>
+            <visualize>false</visualize>
+            <update_rate>30.0</update_rate>
+            <plugin name="imu_plugin" filename="libgazebo_ros_imu_sensor.so">
+                <ros>
+                    <namespace>$(arg robot_namespace)</namespace>
+                    <remapping>~/out:=imu</remapping>
+                </ros>
+                <frame_name>imu_frame</frame_name>
+            </plugin>
+        </sensor>
+    </gazebo>
+
+    <!-- Stereo camera -->
+    <xacro:if value="$(arg stereo_camera_enabled)">
+        <gazebo reference="stereo_camera">
+            <sensor name="stereo_camera" type="multicamera">
+                <always_on>true</always_on>
+                <update_rate>10.0</update_rate>
+                <camera name="left">
+                    <pose>0 0 0 0 0 0</pose>
+                    <horizontal_fov>1.3962634</horizontal_fov>
+                    <image>
+                        <width>1024</width>
+                        <height>1024</height>
+                        <format>R8G8B8</format>
+                    </image>
+                    <clip>
+                        <near>0.3</near>
+                        <far>20.0</far>
+                    </clip>
+                </camera>
+                <camera name="right">
+                    <pose>0 -0.12 0 0 0 0</pose>
+                    <horizontal_fov>1.3962634</horizontal_fov>
+                    <image>
+                        <width>1024</width>
+                        <height>1024</height>
+                        <format>R8G8B8</format>
+                    </image>
+                    <clip>
+                        <near>0.3</near>
+                        <far>20.0</far>
+                    </clip>
+                </camera>
+                <plugin name="stereo_camera_plugin"
+                        filename="libgazebo_ros_camera.so">
+                    <ros>
+                        <namespace>$(arg robot_namespace)</namespace>
+                    </ros>
+                    <camera_name>stereo_camera</camera_name>
+                    <frame_name>stereo_camera_optical</frame_name>
+                    <hack_baseline>0.12</hack_baseline>
+                </plugin>
+            </sensor>
+        </gazebo>
+    </xacro:if>
+
+
+    <xacro:if value="$(arg ros_control_enabled)">
+        <!-- DiffDriveController (wheels) + optional arm/gripper via gazebo_ros2_control -->
+        <gazebo>
+            <plugin filename="libgazebo_ros2_control.so" name="gazebo_ros2_control">
+                <ros>
+                    <namespace>$(arg robot_namespace)</namespace>
+                    <!-- RSP publishes /robot_description (root); CM would otherwise wait on /ns/robot_description -->
+                    <remapping>robot_description:=/robot_description</remapping>
+                </ros>
+                <!-- RSP is launched at root; absolute name avoids /ns/robot_state_publisher -->
+                <robot_param_node>/robot_state_publisher</robot_param_node>
+                <parameters>$(find growing_bot)/config/ros_control.yaml</parameters>
+                <hold_joints>$(arg arm_enabled)</hold_joints>
+            </plugin>
+        </gazebo>
+    </xacro:if>
+
+    <xacro:if value="$(arg arm_enabled)">         
+        <xacro:unless value="$(arg ros_control_enabled)">
+            <!-- Arm (without ros2_control) -->
+            <gazebo>
+                <plugin name="arm_joint_state_publisher"
+                        filename="libgazebo_ros_joint_state_publisher.so">
+                    <ros>
+                        <namespace>$(arg robot_namespace)</namespace>
+                        <remapping>joint_states:=joint_states</remapping>
+                    </ros>
+                    <update_rate>50</update_rate>
+                    <joint_name>joint1</joint_name>
+                    <joint_name>joint2</joint_name>
+                    <joint_name>joint3</joint_name>
+                    <joint_name>joint4</joint_name>
+                    <joint_name>joint5</joint_name>
+                    <joint_name>joint6</joint_name>
+                </plugin>
+            </gazebo>
+
+            <gazebo>
+                <plugin name="arm_joint_pose_trajectory"
+                        filename="libgazebo_ros_joint_pose_trajectory.so">
+                    <ros>
+                        <namespace>$(arg robot_namespace)</namespace>
+                        <remapping>set_joint_trajectory:=arm/set_joint_trajectory</remapping>
+                    </ros>
+                    <update_rate>50</update_rate>
+                </plugin>
+            </gazebo>
+
+            <!-- Gripper -->
+            <gazebo>
+                <plugin name="gripper_joint_state_publisher"
+                        filename="libgazebo_ros_joint_state_publisher.so">
+                    <ros>
+                        <namespace>$(arg robot_namespace)</namespace>
+                        <remapping>joint_states:=joint_states</remapping>
+                    </ros>
+                    <update_rate>50</update_rate>
+                    <joint_name>gripper_left_finger_joint</joint_name>
+                    <joint_name>gripper_right_finger_joint</joint_name>
+                </plugin>
+            </gazebo>
+
+            <gazebo>
+                <plugin name="gripper_joint_pose_trajectory"
+                        filename="libgazebo_ros_joint_pose_trajectory.so">
+                    <ros>
+                        <namespace>$(arg robot_namespace)</namespace>
+                        <remapping>set_joint_trajectory:=gripper/set_joint_trajectory</remapping>
+                    </ros>
+                    <update_rate>50</update_rate>
+                </plugin>
+            </gazebo>
+        </xacro:unless>
+    </xacro:if>
+
+</robot>

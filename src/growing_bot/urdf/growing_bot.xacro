@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+<robot name="growing_bot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <xacro:arg name="arm_enabled" default="true" />
+    <xacro:arg name="detachable_joint" default="true" />
+
+    <xacro:include filename="$(find growing_bot)/urdf/base.xacro" />
+
+    <xacro:if value="$(arg arm_enabled)">
+        <xacro:include filename="$(find growing_bot)/urdf/arm.xacro" />
+        <xacro:include filename="$(find growing_bot)/urdf/gripper.xacro" />
+
+        <joint name="arm_mount_joint" type="fixed">
+            <parent link="base_link" />
+            <child link="arm_base_link" />
+            <origin xyz="0 0 ${base_height}" rpy="0 0 0" />
+        </joint>
+
+        <joint name="gripper_base_joint" type="fixed">
+            <parent link="tool_link" />
+            <child link="gripper_base_link" />
+            <origin xyz="0 0 0" rpy="0 0 0" />
+        </joint>
+    </xacro:if>
+
+    <xacro:if value="$(arg sim_gz)">
+        <xacro:include filename="$(find growing_bot)/urdf/gz.xacro" />
+    </xacro:if>
+
+    <xacro:if value="$(arg sim_gazebo)">
+        <xacro:include filename="$(find growing_bot)/urdf/gazebo.xacro" />
+    </xacro:if>  
+
+</robot>

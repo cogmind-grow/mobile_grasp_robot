@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# ROS and build outputs
+build/
+devel/
+install/
+log/
+logs/
+*.bag
+
+# Local files
+.vscode/
+.DS_Store
+*.swp

@@ -1,0 +1,390 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="growing_bot_gz">
+
+    <!-- Base visual materials -->
+    <xacro:macro name="gz_material" params="link rgba">
+        <gazebo reference="${link}">
+            <material>
+                <ambient>${rgba}</ambient>
+                <diffuse>${rgba}</diffuse>
+                <specular>0.1 0.1 0.1 1</specular>
+            </material>
+        </gazebo>
+    </xacro:macro>
+
+    <xacro:gz_material link="base_link" rgba="0.0 0.8 0.0 1.0" />
+    <xacro:gz_material link="left_wheel_link" rgba="0.8 0.0 0.0 1.0" />
+    <xacro:gz_material link="right_wheel_link" rgba="0.8 0.0 0.0 1.0" />
+    <xacro:gz_material link="caster_link" rgba="0.8 0.0 0.0 1.0" />
+
+    <!-- Drive wheels grip; fixed front caster slides (else forward stick-slips) -->
+    <gazebo reference="left_wheel_link">
+        <mu>1.0</mu>
+        <mu2>1.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>0.1</maxVel>
+    </gazebo>
+    <gazebo reference="right_wheel_link">
+        <mu>1.0</mu>
+        <mu2>1.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>0.1</maxVel>
+    </gazebo>
+    <gazebo reference="caster_link">
+        <mu>0.0</mu>
+        <mu2>0.0</mu2>
+        <kp>1000000.0</kp>
+        <kd>100.0</kd>
+        <minDepth>0.001</minDepth>
+        <maxVel>0.1</maxVel>
+    </gazebo>
+
+    <xacro:if value="$(arg two_d_lidar_enabled)">
+        <xacro:gz_material link="two_d_lidar" rgba="0.5 0.5 0.5 1.0" />
+    </xacro:if>
+
+    <xacro:if value="$(arg camera_enabled)">
+        <xacro:gz_material link="kinect_camera" rgba="0.8 0.0 0.0 1.0" />
+    </xacro:if>
+
+    <xacro:if value="$(arg stereo_camera_enabled)">
+        <xacro:gz_material link="stereo_camera" rgba="0.8 0.0 0.0 1.0" />
+    </xacro:if>
+
+    <xacro:if value="$(arg arm_enabled)">
+        <!-- Arm visual materials -->
+        <gazebo reference="arm_base_link">
+            <material>
+                <ambient>0.5 0.5 0.5 1.0</ambient>
+                <diffuse>0.5 0.5 0.5 1.0</diffuse>
+            </material>
+        </gazebo>
+        <gazebo reference="shoulder_link">
+            <material>
+                <ambient>0.0 0.0 0.8 1.0</ambient>
+                <diffuse>0.0 0.0 0.8 1.0</diffuse>
+            </material>
+        </gazebo>
+        <gazebo reference="arm_link">
+            <material>
+                <ambient>0.5 0.5 0.5 1.0</ambient>
+                <diffuse>0.5 0.5 0.5 1.0</diffuse>
+            </material>
+        </gazebo>
+        <gazebo reference="elbow_link">
+            <material>
+                <ambient>0.0 0.0 0.8 1.0</ambient>
+                <diffuse>0.0 0.0 0.8 1.0</diffuse>
+            </material>
+        </gazebo>
+        <gazebo reference="forearm_link">
+            <material>
+                <ambient>0.5 0.5 0.5 1.0</ambient>
+                <diffuse>0.5 0.5 0.5 1.0</diffuse>
+            </material>
+        </gazebo>
+        <gazebo reference="wrist_link">
+            <material>
+                <ambient>0.0 0.0 0.8 1.0</ambient>
+                <diffuse>0.0 0.0 0.8 1.0</diffuse>
+            </material>
+        </gazebo>
+        <gazebo reference="hand_link">
+            <material>
+                <ambient>0.5 0.5 0.5 1.0</ambient>
+                <diffuse>0.5 0.5 0.5 1.0</diffuse>
+            </material>
+        </gazebo>
+
+        <!-- Gripper visual materials -->
+        <gazebo reference="gripper_base_link">
+            <material>
+                <ambient>0.0 0.35 0.0 1.0</ambient>
+                <diffuse>0.0 0.35 0.0 1.0</diffuse>
+            </material>
+        </gazebo>
+        <gazebo reference="gripper_left_finger_link">
+            <material>
+                <ambient>0.4 1.0 0.4 1.0</ambient>
+                <diffuse>0.4 1.0 0.4 1.0</diffuse>
+            </material>
+        </gazebo>
+        <gazebo reference="gripper_right_finger_link">
+            <material>
+                <ambient>0.4 1.0 0.4 1.0</ambient>
+                <diffuse>0.4 1.0 0.4 1.0</diffuse>
+            </material>
+        </gazebo>
+    </xacro:if>
+
+    <!-- Base systems -->
+    <gazebo>
+        <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+            <render_engine>ogre2</render_engine>
+        </plugin>
+
+        <plugin filename="gz-sim-imu-system" name="gz::sim::systems::Imu">
+        </plugin>
+    </gazebo>
+
+    <xacro:unless value="$(arg ros_control_enabled)">
+        <!-- DiffDrive + joint states (skipped when gz_ros2_control owns the wheels) -->
+        <gazebo>
+            <plugin filename="gz-sim-joint-state-publisher-system"
+                    name="gz::sim::systems::JointStatePublisher">
+            </plugin>
+
+            <plugin filename="gz-sim-diff-drive-system" name="gz::sim::systems::DiffDrive">
+                <left_joint>base_left_joint</left_joint>
+                <right_joint>base_right_joint</right_joint>
+                <wheel_separation>${base_width+wheel_length}</wheel_separation>
+                <wheel_radius>${wheel_radius}</wheel_radius>
+                <odom_publish_frequency>30</odom_publish_frequency>
+                <topic>/cmd_vel</topic>
+                <xacro:if value="${odometry_source == 'encoders'}">
+                    <odom_topic>$(arg wheel_odom_topic)</odom_topic>
+                    <tf_topic>/tf</tf_topic>
+                </xacro:if>
+                <frame_id>odom</frame_id>
+                <child_frame_id>base_footprint</child_frame_id>
+            </plugin>
+        </gazebo>
+    </xacro:unless>
+
+    <!-- Ground truth -->
+    <xacro:if value="${odometry_source == 'world'}">
+        <gazebo>
+            <plugin filename="libgz-sim-odometry-publisher-system"
+                    name="gz::sim::systems::OdometryPublisher">
+                <odom_frame>odom</odom_frame>
+                <robot_base_frame>base_footprint</robot_base_frame>
+                <odom_topic>$(arg wheel_odom_topic)</odom_topic>
+                <tf_topic>/tf</tf_topic>
+                <dimensions>2</dimensions>
+                <odom_publish_frequency>10</odom_publish_frequency>
+            </plugin>
+        </gazebo>
+    </xacro:if>
+
+    <!-- 2D lidar -->
+    <xacro:if value="$(arg two_d_lidar_enabled)">
+        <gazebo reference="two_d_lidar">
+            <sensor name="gpu_lidar" type="gpu_lidar">
+                <topic>scan</topic>
+                <update_rate>${two_d_lidar_update_rate}</update_rate>
+                <gz_frame_id>two_d_lidar</gz_frame_id>
+                <lidar>
+                    <scan>
+                        <horizontal>
+                            <samples>${two_d_lidar_sample_size}</samples>
+                            <resolution>1</resolution>
+                            <min_angle>${radians(two_d_lidar_min_angle)}</min_angle>
+                            <max_angle>${radians(two_d_lidar_max_angle)}</max_angle>
+                        </horizontal>
+                    </scan>
+                    <range>
+                        <min>${two_d_lidar_min_range}</min>
+                        <max>${two_d_lidar_max_range}</max>
+                        <resolution>0.01</resolution>
+                    </range>
+                    <noise>
+                        <type>gaussian</type>
+                        <mean>0.0</mean>
+                        <stddev>0.001</stddev>
+                    </noise>
+                </lidar>
+                <always_on>1</always_on>
+                <visualize>false</visualize>
+            </sensor>
+        </gazebo>
+    </xacro:if>
+
+    <!-- Depth camera -->
+    <xacro:if value="$(arg camera_enabled)">
+        <gazebo reference="kinect_camera">
+            <sensor type="depth_camera" name="kinect_camera">
+                <update_rate>30.0</update_rate>
+                <topic>kinect_camera</topic>
+                <gz_frame_id>kinect_camera</gz_frame_id>
+                <camera>
+                    <camera_info_topic>kinect_camera/camera_info</camera_info_topic>
+                    <horizontal_fov>${radians(camera_horizontal_fov)}</horizontal_fov>
+                    <image>
+                        <width>640</width>
+                        <height>480</height>
+                        <format>R8G8B8</format>
+                    </image>
+                    <clip>
+                        <near>0.05</near>
+                        <far>8.0</far>
+                    </clip>
+                </camera>
+            </sensor>
+        </gazebo>
+
+        <!-- RGB camera (YOLO object detection) -->
+        <gazebo reference="kinect_camera">
+            <sensor type="camera" name="rgb_camera">
+                <update_rate>30.0</update_rate>
+                <topic>rgb_camera</topic>
+                <gz_frame_id>kinect_camera</gz_frame_id>
+                <camera>
+                    <camera_info_topic>rgb_camera/camera_info</camera_info_topic>
+                    <horizontal_fov>${radians(camera_horizontal_fov)}</horizontal_fov>
+                    <image>
+                        <width>640</width>
+                        <height>480</height>
+                        <format>R8G8B8</format>
+                    </image>
+                    <clip>
+                        <near>0.05</near>
+                        <far>8.0</far>
+                    </clip>
+                </camera>
+            </sensor>
+        </gazebo>
+    </xacro:if>
+
+    <!-- IMU -->
+    <gazebo reference="imu_frame">
+        <sensor name="imu_sensor" type="imu">
+            <always_on>1</always_on>
+            <update_rate>1</update_rate>
+            <gz_frame_id>imu_frame</gz_frame_id>
+            <visualize>true</visualize>
+            <topic>imu</topic>
+        </sensor>
+    </gazebo>
+
+    <!-- Stereo camera -->
+    <xacro:if value="$(arg stereo_camera_enabled)">
+        <gazebo reference="stereo_camera">
+            <sensor type="camera" name="right">
+                <update_rate>10.0</update_rate>
+                <always_on>true</always_on>
+                <gz_frame_id>stereo_camera_optical</gz_frame_id>
+                <pose>0 -0.12 0 0 0 0</pose>
+                <topic>stereo_camera/right/image_raw</topic>
+                <camera_info_topic>stereo_camera/right/camera_info</camera_info_topic>
+                <horizontal_fov>1.3962634</horizontal_fov>
+                <image>
+                    <width>1024</width>
+                    <height>1024</height>
+                    <format>R8G8B8</format>
+                </image>
+                <clip>
+                    <near>0.3</near>
+                    <far>20</far>
+                </clip>
+            </sensor>
+
+            <sensor type="camera" name="left">
+                <topic>stereo_camera/left/image_raw</topic>
+                <update_rate>10.0</update_rate>
+                <always_on>true</always_on>
+                <gz_frame_id>stereo_camera_optical</gz_frame_id>
+                <camera_info_topic>stereo_camera/left/camera_info</camera_info_topic>
+                <pose>0 0 0 0 0 0</pose>
+                <horizontal_fov>1.3962634</horizontal_fov>
+                <image>
+                    <width>1024</width>
+                    <height>1024</height>
+                    <format>R8G8B8</format>
+                </image>
+                <clip>
+                    <near>0.3</near>
+                    <far>20</far>
+                </clip>
+            </sensor>
+        </gazebo>
+    </xacro:if>
+
+    <xacro:if value="$(arg ros_control_enabled)">
+        <!-- DiffDriveController (wheels) + optional arm/gripper via gz_ros2_control -->
+        <gazebo>
+            <plugin filename="gz_ros2_control-system"
+                    name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+                <ros>
+                    <namespace>$(arg robot_namespace)</namespace>
+                    <!-- RSP publishes /robot_description (root); CM would otherwise wait on /ns/robot_description -->
+                    <remapping>robot_description:=/robot_description</remapping>
+                </ros>
+                <!-- RSP is launched at root; absolute name avoids /ns/robot_state_publisher -->
+                <robot_param_node>/robot_state_publisher</robot_param_node>
+                <parameters>$(find growing_bot)/config/ros_control.yaml</parameters>
+            </plugin>
+        </gazebo>
+    </xacro:if>
+
+    <!-- Arm position controllers (without ros2_control) -->
+    <xacro:macro name="gz_arm_position_controller"
+                 params="joint topic p_gain d_gain cmd_max">
+        <gazebo>
+            <plugin filename="gz-sim-joint-position-controller-system"
+                    name="gz::sim::systems::JointPositionController">
+                <joint_name>${joint}</joint_name>
+                <topic>${topic}</topic>
+                <p_gain>${p_gain}</p_gain>
+                <i_gain>0.0</i_gain>
+                <d_gain>${d_gain}</d_gain>
+                <cmd_max>${cmd_max}</cmd_max>
+                <cmd_min>${-cmd_max}</cmd_min>
+                <initial_position>0.0</initial_position>
+            </plugin>
+        </gazebo>
+    </xacro:macro>
+
+    <xacro:if value="$(arg arm_enabled)">
+        <xacro:unless value="$(arg ros_control_enabled)">
+            <xacro:gz_arm_position_controller
+                joint="joint1" topic="/arm/joint1/cmd_pos"
+                p_gain="200.0" d_gain="20.0" cmd_max="200.0" />
+            <xacro:gz_arm_position_controller
+                joint="joint2" topic="/arm/joint2/cmd_pos"
+                p_gain="300.0" d_gain="30.0" cmd_max="300.0" />
+            <xacro:gz_arm_position_controller
+                joint="joint3" topic="/arm/joint3/cmd_pos"
+                p_gain="250.0" d_gain="25.0" cmd_max="250.0" />
+            <xacro:gz_arm_position_controller
+                joint="joint4" topic="/arm/joint4/cmd_pos"
+                p_gain="120.0" d_gain="12.0" cmd_max="100.0" />
+            <xacro:gz_arm_position_controller
+                joint="joint5" topic="/arm/joint5/cmd_pos"
+                p_gain="80.0" d_gain="8.0" cmd_max="100.0" />
+            <xacro:gz_arm_position_controller
+                joint="joint6" topic="/arm/joint6/cmd_pos"
+                p_gain="50.0" d_gain="5.0" cmd_max="50.0" />
+
+            <!-- Gripper position controllers (left / right fingers) -->
+            <xacro:gz_arm_position_controller
+                joint="gripper_left_finger_joint" topic="/gripper/left/cmd_pos"
+                p_gain="100.0" d_gain="5.0" cmd_max="20.0" />
+            <xacro:gz_arm_position_controller
+                joint="gripper_right_finger_joint" topic="/gripper/right/cmd_pos"
+                p_gain="100.0" d_gain="5.0" cmd_max="20.0" />
+        </xacro:unless>
+
+        <!-- Grasp attach: weld bottle to gripper (enable with detachable_joint:=true) -->
+        <!-- parent must survive URDF→SDF fixed-joint lumping; gripper_base_link is often merged away -->
+        <xacro:if value="$(arg detachable_joint)">
+            <gazebo>
+                <plugin filename="gz-sim-detachable-joint-system"
+                        name="gz::sim::systems::DetachableJoint">
+                    <parent_link>hand_link</parent_link>
+                    <child_model>bottle</child_model>
+                    <child_link>link</child_link>
+                    <attach_topic>/growing_bot/bottle/attach</attach_topic>
+                    <detach_topic>/growing_bot/bottle/detach</detach_topic>
+                    <output_topic>/growing_bot/bottle/attach_state</output_topic>
+                    <!-- Newer gz-sim: start detached for pick-and-place; ignored if unsupported -->
+                    <initial_attach>false</initial_attach>
+                </plugin>
+            </gazebo>
+        </xacro:if>
+    </xacro:if>
+
+</robot>

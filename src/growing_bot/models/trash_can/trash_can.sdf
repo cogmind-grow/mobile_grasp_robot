@@ -1,0 +1,136 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <model name="trash_can">
+    <!-- 开口垃圾桶：无盖，四壁+底板，便于投递仿真 -->
+    <static>true</static>
+
+    <link name="link">
+      <inertial>
+        <mass>5.0</mass>
+        <inertia>
+          <ixx>0.12</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.12</iyy>
+          <iyz>0</iyz>
+          <izz>0.10</izz>
+        </inertia>
+      </inertial>
+
+      <!-- 底板 -->
+      <visual name="bottom_visual">
+        <pose>0 0 0.01 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.36 0.36 0.02</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.18 0.22 0.18 1</ambient>
+          <diffuse>0.25 0.32 0.25 1</diffuse>
+          <specular>0.15 0.15 0.15 1</specular>
+        </material>
+      </visual>
+      <collision name="bottom_collision">
+        <pose>0 0 0.01 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.36 0.36 0.02</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <!-- 前壁 (+y) -->
+      <visual name="front_visual">
+        <pose>0 0.17 0.22 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.36 0.02 0.40</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.18 0.22 0.18 1</ambient>
+          <diffuse>0.25 0.32 0.25 1</diffuse>
+          <specular>0.15 0.15 0.15 1</specular>
+        </material>
+      </visual>
+      <collision name="front_collision">
+        <pose>0 0.17 0.22 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.36 0.02 0.40</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <!-- 后壁 (-y) -->
+      <visual name="back_visual">
+        <pose>0 -0.17 0.22 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.36 0.02 0.40</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.18 0.22 0.18 1</ambient>
+          <diffuse>0.25 0.32 0.25 1</diffuse>
+          <specular>0.15 0.15 0.15 1</specular>
+        </material>
+      </visual>
+      <collision name="back_collision">
+        <pose>0 -0.17 0.22 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.36 0.02 0.40</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <!-- 左壁 (-x) -->
+      <visual name="left_visual">
+        <pose>-0.17 0 0.22 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.02 0.32 0.40</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.18 0.22 0.18 1</ambient>
+          <diffuse>0.25 0.32 0.25 1</diffuse>
+          <specular>0.15 0.15 0.15 1</specular>
+        </material>
+      </visual>
+      <collision name="left_collision">
+        <pose>-0.17 0 0.22 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.02 0.32 0.40</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <!-- 右壁 (+x) -->
+      <visual name="right_visual">
+        <pose>0.17 0 0.22 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.02 0.32 0.40</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.18 0.22 0.18 1</ambient>
+          <diffuse>0.25 0.32 0.25 1</diffuse>
+          <specular>0.15 0.15 0.15 1</specular>
+        </material>
+      </visual>
+      <collision name="right_collision">
+        <pose>0.17 0 0.22 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.02 0.32 0.40</size>
+          </box>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>

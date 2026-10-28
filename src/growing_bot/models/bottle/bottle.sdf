@@ -1,0 +1,62 @@
+<?xml version="1.0" ?>
+<sdf version="1.8">
+  <model name="bottle">
+    <!-- 空塑料瓶（真实水瓶网格：透明瓶身 + 蓝盖 + 标签，YOLO 可识别）
+         原网格高 1.365m / 直径 0.386m，已在 DAE 内通过 <unit meter="0.15"/>
+         整体缩小为高约 0.205m / 直径约 0.058m，适配当前夹爪开口（64mm） -->
+    <static>false</static>
+    <link name="link">
+      <pose>0 0 0.102 0 0 0</pose>
+      <inertial>
+        <mass>0.02</mass>
+        <inertia>
+          <ixx>0.000074</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.000074</iyy>
+          <iyz>0</iyz>
+          <izz>0.0000084</izz>
+        </inertia>
+      </inertial>
+
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://bottle/meshes/plastic_water_bottle/Plastic_Water_Bottle_Empty.dae</uri>
+            <scale>1 1 1</scale>
+          </mesh>
+          <!-- 缩放由 DAE <unit meter="0.15"/> 完成（gz-common ColladaLoader
+               加载时按 unit 值缩放网格），SDF 内保持 1 1 1，避免双重缩放 -->
+        </geometry>
+        <!-- 不覆盖材质：DAE 自带透明瓶身/蓝盖/标签，外形真实是 YOLO 可识别的关键 -->
+      </visual>
+
+      <!-- 碰撞用圆柱近似（网格约 10 万顶点，直接做碰撞太重）：
+           半径 29mm / 长 200mm，贴合缩小后的瓶身轮廓 -->
+      <collision name="collision">
+        <geometry>
+          <cylinder>
+            <radius>0.029</radius>
+            <length>0.2</length>
+          </cylinder>
+        </geometry>
+        <surface>
+          <friction>
+            <ode>
+              <mu>1.2</mu>
+              <mu2>1.2</mu2>
+            </ode>
+          </friction>
+          <contact>
+            <ode>
+              <kp>1e5</kp>
+              <kd>100</kd>
+              <max_vel>1.0</max_vel>
+              <min_depth>0.001</min_depth>
+            </ode>
+          </contact>
+        </surface>
+      </collision>
+    </link>
+  </model>
+</sdf>

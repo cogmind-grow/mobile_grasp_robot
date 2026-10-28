@@ -1,0 +1,11 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: growing_bot
+    relative_path: urdf/growing_bot.xacro
+    xacro_args: arm_enabled:=true sim_gz:=false sim_gazebo:=false ros_control_enabled:=false
+  srdf:
+    relative_path: config/growing_bot.srdf
+  package_settings:
+    author_name: todo
+    author_email: todo@qq.com
+    generated_timestamp: 1789897781

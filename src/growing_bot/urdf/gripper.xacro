@@ -1,0 +1,92 @@
+<?xml version="1.0" ?>
+<robot xmlns:xacro="http://www.ros.org/xacro">
+
+    <xacro:include filename="$(find growing_bot)/urdf/macros.xacro" />
+
+    <xacro:property name="gripper_base_mass" value="0.2" />
+    <xacro:property name="gripper_finger_mass" value="0.05" />
+
+    <link name="gripper_base_link">
+        <visual>
+            <geometry>
+                <box size="0.2 0.06 0.02" />
+            </geometry>
+            <material name="dark_green" />
+            <origin xyz="0 0 0.01" rpy="0 0 0" />
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.2 0.06 0.02" />
+            </geometry>
+            <origin xyz="0 0 0.01" rpy="0 0 0" />
+        </collision>
+        <inertial>
+            <origin xyz="0 0 0.01" rpy="0 0 0" />
+            <mass value="${gripper_base_mass}" />
+            <xacro:box_inertia m="${gripper_base_mass}" x="0.2" y="0.06" z="0.02" />
+        </inertial>
+    </link>
+
+    <link name="gripper_left_finger_link">
+        <visual>
+            <geometry>
+                <box size="0.02 0.06 0.08" />
+            </geometry>
+            <material name="light_green" />
+            <origin xyz="0 0 0.04" rpy="0 0 0" />
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.02 0.06 0.08" />
+            </geometry>
+            <origin xyz="0 0 0.04" rpy="0 0 0" />
+        </collision>
+        <inertial>
+            <origin xyz="0 0 0.04" rpy="0 0 0" />
+            <mass value="${gripper_finger_mass}" />
+            <xacro:box_inertia m="${gripper_finger_mass}" x="0.02" y="0.06" z="0.08" />
+        </inertial>
+    </link>
+
+    <link name="gripper_right_finger_link">
+        <visual>
+            <geometry>
+                <box size="0.02 0.06 0.08" />
+            </geometry>
+            <material name="light_green" />
+            <origin xyz="0 0 0.04" rpy="0 0 0" />
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.02 0.06 0.08" />
+            </geometry>
+            <origin xyz="0 0 0.04" rpy="0 0 0" />
+        </collision>
+        <inertial>
+            <origin xyz="0 0 0.04" rpy="0 0 0" />
+            <mass value="${gripper_finger_mass}" />
+            <xacro:box_inertia m="${gripper_finger_mass}" x="0.02" y="0.06" z="0.08" />
+        </inertial>
+    </link>
+
+    <joint name="gripper_left_finger_joint" type="prismatic">
+        <parent link="gripper_base_link" />
+        <child link="gripper_left_finger_link" />
+        <origin xyz="-0.07 0 0.02" rpy="0 0 0" />
+        <axis xyz="1 0 0" />
+        <!-- lower slightly below 0: sim rest pose can be ~-1e-16 -->
+        <limit effort="1000.0" velocity="1.0" lower="-0.001" upper="0.06" />
+        <dynamics damping="0.2" friction="0.1" />
+    </joint>
+
+    <joint name="gripper_right_finger_joint" type="prismatic">
+        <parent link="gripper_base_link" />
+        <child link="gripper_right_finger_link" />
+        <origin xyz="0.07 0 0.02" rpy="0 0 0" />
+        <axis xyz="1 0 0" />
+       <!-- <mimic joint="gripper_left_finger_joint" multiplier="-1.0" /> -->
+        <limit effort="1000.0" velocity="1.0" lower="-0.06" upper="0.001" />
+        <dynamics damping="0.2" friction="0.1" />
+    </joint>    
+
+</robot>
